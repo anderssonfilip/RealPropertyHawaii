@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+
+</head>
+
+<body>
+
+  <div id="container" style="width:100%; height:400px;"></div>
+
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  <!-- <script src="http://code.highcharts.com/highcharts.js"></script> -->
+  <script src="http://code.highcharts.com/maps/highmaps.js"></script>
+
+  <script src="http://code.highcharts.com/mapdata/countries/us/us-hi-all.js"></script>
+
+  <script type="text/javascript">
+
+  $(function () {
+
+    var data = [{
+      "hc-key": "us-hi-001",
+      "value" : 1,
+      "id" : "us-hi-001"
+    }];
+
+
+    $('#container').highcharts('Map', {
+      title: {
+        text: 'Hawaii County (Big Island) Recent Parcel Sales in Zone-Section'
+      },
+      mapNavigation: {
+        enabled: false
+      },
+      series : [{
+        name : '# Sales',
+        data : data,
+        joinBy: 'hc-key',
+        allAreas: false,
+        mapData: Highcharts.maps['countries/us/us-hi-all'],
+        // click: function (e) {
+        //                e.point.zoomTo();
+        //            }
+      }],
+      chart: {
+        events: {
+          load: function () {
+            var map = $('#container').highcharts()
+            map.mapCreditsFull = '';
+            map.get('us-hi-001').zoomTo();
+          }
+        }
+      }
+    });
+
+    //var divison = 3;
+    var zone = 1; // 1-9
+    var section = 1; // 1-9
+    var queryURL = 'http://qpublic9.qpublic.net/ga_subdivison_dw.php?searchType=map&' +
+    'numberValue=' + zone + section +
+    '&nameValue=&sectionValue=&townshipValue=&rangeValue=&' +
+    'startDate='+ '01-2015' +
+    '&endDate=&startPrice=&endPrice=&startArea=&endArea=&startAcreage=&endAcreage=&saleQualification=&saleVacant=&propertyType=All&reasonType=All&start=0&county=hi_hawaii';
+
+    $.get(queryURL, function(data, status){
+      console.log("Status: " + status  +
+                  "\n" +
+                  "Data: " + data);
+    });
+
+  });
+  </script>
+
+</body>
