@@ -1,0 +1,11 @@
+PROPERTY CLASS
+  
+0 Affordable Rental Housing
+1 Residential
+2 Apartment
+3 Commercial
+4 Industrial
+5 Agricultural and Native Forest
+6 Conservation
+7 Hotel/Resort
+9 Homeowner

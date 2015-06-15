@@ -22,6 +22,22 @@
 
   <script src="http://code.highcharts.com/mapdata/countries/us/us-hi-all.js"></script>
 
+  <script src="node_modules/pdf.js/src/shared/util.js"></script>
+  <script src="node_modules/pdf.js/src/display/api.js"></script>
+  <script src="node_modules/pdf.js/src/display/metadata.js"></script>
+  <script src="node_modules/pdf.js/src/display/canvas.js"></script>
+  <script src="node_modules/pdf.js/src/display/webgl.js"></script>
+  <script src="node_modules/pdf.js/src/display/pattern_helper.js"></script>
+  <script src="node_modules/pdf.js/src/display/font_loader.js"></script>
+  <script src="node_modules/pdf.js/src/display/annotation_helper.js"></script>
+  <script>
+  // Specify the main script used to create a new PDF.JS web worker.
+  // In production, leave this undefined or change it to point to the
+  // combined `pdf.worker.js` file.
+  PDFJS.workerSrc = 'node_modules/pdf.js/src/worker_loader.js';
+  </script>
+  <script src="processpdf.js"></script>
+
   <script type="text/javascript">
 
   $(function () {
@@ -70,11 +86,11 @@
     'startDate='+ '01-2015' +
     '&endDate=&startPrice=&endPrice=&startArea=&endArea=&startAcreage=&endAcreage=&saleQualification=&saleVacant=&propertyType=All&reasonType=All&start=0&county=hi_hawaii';
 
-    $.get(queryURL, function(data, status){
-      console.log("Status: " + status  +
-                  "\n" +
-                  "Data: " + data);
-    });
+    // $.get(queryURL, function(data, status){
+    //   console.log("Status: " + status  +
+    //               "\n" +
+    //               "Data: " + data);
+    // });
 
   });
   </script>
