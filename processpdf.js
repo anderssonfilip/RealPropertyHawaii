@@ -4,14 +4,19 @@ var request = function (url, data) {
   return $.get(url, {json: JSON.stringify(data)})
 }
 
-var requests = [
-  //  ["/echo/json/", "success1"]
-  ["http://qpublic9.qpublic.net/hi_hawaii_display.php?county=hi_hawaii&KEY=", 921180430000]
-  //, ["/echo/jsons/", ["error1"]]
-  //  , ["/echo/json/", ["success2"]]
-  //, ["/echo/json/", ["error2"]]
-  //  , ["/echo/json/", ["success3"]]
-];
+var locations = [];
+var getLocation = function(data)
+{
+  var reLocation = /javascript:doGoogle\(.+(?=\))/;
+
+  var result = data.match(reLocation);
+  var m = result[0].substring(result[0].indexOf('(')+1);
+
+  var lonLat = m.split(',');
+
+  console.log(lonLat);
+}
+
 
 var singleRequest = false;
 
@@ -30,19 +35,29 @@ function matchTMK(text)
   while (match = reTMK.exec(text))
   {
     var tmk = match[0].replace(/-/g, '');
-    requests.push(["http://qpublic9.qpublic.net/hi_hawaii_display.php?county=hi_hawaii&KEY=", tmk]);
+
+    //var mapURL = "http://qpublic9.qpublic.net/qpmap4/map.php?county=hi_hawaii&parcel=";
+    //var tabDataURL = "http://qpublic9.qpublic.net/hi_hawaii_display.php?county=hi_hawaii&KEY=";
+
+    var viewAsURL = ["http://qpublic9.qpublic.net/cgi-bin/mapserv60?_dc=1434658551034&id=1434658550183&county=hi_hawaii&savequery=true&map=%2Fqpub1%2Fmaps%2Fhi%2Fhawaii%2Fparcel4.map&mode=itemquery&qitem=QPID&qstring=",
+                  tmk,
+                  "&qformat=parcel_as_html&qlayer=qparcel"];
+
+    requests.push(viewAsURL.join(""));
     singleRequest = true;
     break;
   }
 
   $.when($.map(requests, function (_request, i) {
-    return request.apply($, _request)
+    return request.call($, _request)
   }))
-  .always(function (arr) {a
+  .always(function (arr) {
     $.each(arr, function (key, value) {
       value.then(
         function (data, textStatus, jqxhr) {
           console.log(data, textStatus, jqxhr);
+
+          getLocation(data);
         },
         function (jqxhr, textStatus, errorThrown) {
           console.log(jqxhr, textStatus, errorThrown)
