@@ -18,19 +18,11 @@ var getLocation = function(data)
 }
 
 
-var singleRequest = false;
-
 // eg. 1-1-007-028-0000
 var reTMK = /\d-\d-\d\d\d-\d\d\d-0000/g;
 function matchTMK(text)
 {
   var requests = [];
-
-  if(singleRequest) // test with first key
-  {
-    return;
-  }
-
   var match;
   while (match = reTMK.exec(text))
   {
@@ -44,9 +36,8 @@ function matchTMK(text)
                   "&qformat=parcel_as_html&qlayer=qparcel"];
 
     requests.push(viewAsURL.join(""));
-    singleRequest = true;
-    break;
   }
+  return;
 
   $.when($.map(requests, function (_request, i) {
     return request.call($, _request)
@@ -55,8 +46,6 @@ function matchTMK(text)
     $.each(arr, function (key, value) {
       value.then(
         function (data, textStatus, jqxhr) {
-          console.log(data, textStatus, jqxhr);
-
           getLocation(data);
         },
         function (jqxhr, textStatus, errorThrown) {

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Hawaii County Parcel Maps</title>
+
+<script>var hideMobile = true;</script>
+
+<script>
+				var ios = false;
+				var panelCollapse = true;
+				var panelMinSize = 175;
+			</script>
+<link rel="stylesheet" type="text/css" href="/assets/js/ext-3.4.1/resources/css/ext-all.css"/>
+<link rel="stylesheet" type="text/css" href="/assets/js/OpenLayers-2.13.1/theme/default/style.css"/>
+
+<link rel="stylesheet" type="text/css" href="styles/qpmap.css?version=71"/>
+<style>.olControlOverviewMapElement{background-color:#FFFFFF;padding:0px;}</style>
+
+<script src="/assets/js/ext-3.4.1/adapter/ext/ext-base.js"></script>
+<script src="/assets/js/ext-3.4.1/ext-all.js"></script>
+
+<script src="scripts/qputils.js?version=71"></script>
+<script src="scripts/qplayers.js?version=71"></script>
+<script src='county/hi_hawaii.js?version=9834b6e97be3da58'></script>
+
+<script src="/assets/js/proj4js/lib/proj4js-compressed.js"></script>
+<script src="/assets/js/proj4js/lib/defs/qpublic.js"></script>
+
+<script>
+		config.maptype =  "parcel";
+	</script>
+
+<script src="/assets/js/OpenLayers-2.13.1/OpenLayers.js"></script>
+<script src="scripts/qpmap.js?version=71"></script>
+<script src="scripts/qp-print.js?version=71"></script>
+<script>
+		var app = null;
+		var qp_st_county = config.county;
+		var qp_st = config.county.substr(0,2);
+		var qp_county = config.county.substr(3);
+
+		var mobileLink = 'http://qpublic9.qpublic.net/qp_mobile/map.php?county=' + qp_st_county;
+
+		if (config.searchPanel) {
+			//**********SEARCH Required**************************************
+			// the x have allready been absoluted to remove negative
+			// also we are using floor for the max because the min and sec are added
+			var minLat = parseFloat('');
+			var minLon = parseFloat('');
+			var maxLat = parseFloat('');
+			var maxLon = parseFloat('');
+			var minLatDeg = Math.floor(minLat);
+			var minLonDeg = Math.floor(maxLon);
+			var maxLatDeg = Math.floor(maxLat);
+			var maxLonDeg = Math.floor(minLon);
+			var cenLon = (minLon + maxLon ) / 2
+			var cenLonDeg = Math.floor(cenLon);
+			var cenLonMin = Math.floor((cenLon - cenLonDeg) * 60)
+			var cenLat = (minLat + maxLat ) / 2
+			var cenLatDeg = Math.floor(cenLat);
+			var cenLatMin = Math.floor((cenLat - cenLatDeg) * 60)
+			//****************************************************************
+		}
+		// various wrappers for app specfic methods
+		//
+		function onToggleHandler(item, pressed) { if(pressed) app.doButton(item.id, pressed); }
+		function onResizeHandler() {
+			var expireDate = new Date();
+			expireDate.setDate(expireDate.getDate() + 365); // one year
+
+			if(app.map) app.map.updateSize();
+			if(Ext.getCmp('reports')) Ext.util.Cookies.set('QPMAP_REPORTS_WIDTH', Ext.getCmp('reports').getWidth(), expireDate);
+			if(Ext.getCmp('controls-panel')) Ext.util.Cookies.set('QPMAP_CONTROLS_WIDTH', Ext.getCmp('controls-panel').getWidth(), expireDate);
+		}
+		function layerClickHandler(name) { app.processLayer(name); }
+		function clearParcels() { app.clearParcels(); }
+		function hiliteParcel(id) { app.getParcelByAttribute('QPID', id); }
+		function initExt() {
+
+			if(config.custom) config.custom(); // execute custom callback (if defined)
+
+			config.ident = 'app'; // must match the identifier name on the next line
+			app = new qpMap(config);
+			//
+			// determine which zoom to level buttons we show
+
+		var zoomCntyImg = "<img src=graphics/zoom_county.gif>";
+		var zoomStateImg = "<img src=graphics/zoom_ga_state.gif>";
+		var hideCntyBtn = false;
+		var hideStateBtn = true;
+		var hideSearchSales = false;
+		var hideBuildParcelList = false;
+		var hideMeasure = false;
+		if (qp_st == 'ct'){
+		// use town instead of county
+			var zoomCntyImg = "<img src=graphics/zoom_town.gif>";
+		}
+		if (qp_st == 'nh'){
+			// use city instead of county
+			var zoomCntyImg = "<img src=graphics/zoom_city.gif>";
+		}
+		if (qp_county == 'gaao'){
+			// do not include the zoom county
+			hideCntyBtn = true;
+			hideStateBtn = false;
+		}
+		if (qp_st == 'ga'){
+			// include the zoom state
+			var hideStateBtn = false;
+		}
+		if (qp_county == 'hawaii' || qp_county == 'honolulu' ){
+			// do not include the search sales
+			hideSearchSales = true;
+		}
+		if (qp_county == 'orleans'){
+			// do not include build a parcel list
+			hideBuildParcelList = true;
+		}
+		if (qp_st_county == 'ga_union'){
+			// union county does not want people to measure parcels
+			hideMeasure = true;
+			hideStateBtn = true;
+		}
+		hideStateBtn = true;
+		//
+		//**************************************************************************************
+		if (config.searchPanel) {
+			hideSearch = false;
+			var rd_store = new Ext.data.JsonStore({
+				url: 'scripts/get_street.php',
+				root: 'data',  // the root of the array you'll send down
+				idProperty: 'gid',
+				fields: ['gid','qplabel','qp_length','min_x','min_y','max_x','max_y']
+			});
+			//rd_store.proxy.conn.method = 'GET';
+			var parcel_store = new Ext.data.JsonStore({
+				url: 'scripts/get_parcels.php',
+				root: 'data',  // the root of the array you'll send down
+				idProperty: 'search_id',
+				fields: ['search_id', 'qpid','acres','min_x','min_y','max_x','max_y']
+			});
+			parcel_store.proxy.conn.method = 'GET';
+		}else{
+			hideSearch = true;
+		}
+	  //**************************************************************************************
+			//
+			var viewport = new Ext.Viewport({
+				layout: 'border',
+				id: 'main_vp',
+				items: [{
+					region:'north',
+					height:36,
+					margins:'5 5 5 5',
+					items:[
+						new Ext.Toolbar({
+							id: 'toolbar',
+							enableOverflow: true,
+							items:[
+								{id:'zoom-state', hidden: hideStateBtn, scale:'medium', text: zoomStateImg, enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'zoom-county', hidden: hideCntyBtn, scale:'medium', text: zoomCntyImg, enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'zoom-box', scale:'medium', text:"<img src=\"graphics/zoom_box.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'zoom-in', scale:'medium', text:"<img src=\"graphics/zoom-in.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'zoom-out', scale:'medium', text:"<img src=\"graphics/zoom-out.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'pan-by-hand', scale:'medium', text:"<img src=\"graphics/pan-by-hand.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'info', scale:'medium', text:"<img src=\"graphics/info.gif\">", pressed: true, enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'zoom-parcel', scale:'medium', text:"<img src=\"graphics/zoom_parcel.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'center-parcel', scale:'medium', text:"<img src=\"graphics/center_parcel.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'measure-length', hidden: hideMeasure, scale:'medium', text:"<img src=\"graphics/measure.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'measure-area', hidden: hideMeasure, scale:'medium', text:"<img src=\"graphics/poly-measure.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'print-page', scale:'medium', text:"<img src=\"graphics/print_page.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								{id:'sales',hidden: hideSearchSales, scale:'medium', text:"<img src=\"graphics/sales_page.gif\">", enableToggle:true, toggleHandler:onToggleHandler, toggleGroup:'qpButtonGroup'},
+								'-',
+								{id:'options', scale:'medium', 'text':'<b>Additional Options</b>',
+									menu: {
+										items: [
+											{text:'Enable parcel quick view', checked: false, checkHandler:function(item, checked) { app.toggleHover(checked); }},
+											{text:'Save map as image', handler:function () { app.openMapImage(); }},
+											{text:'Zoom to scale...',
+												menu: {
+													items: [
+														{text:'1" = 50\'', handler:function () { app.changeScale(600); }},
+														{text:'1" = 100\'', handler:function () { app.changeScale(1200); }},
+														{text:'1" = 200\'', handler:function () { app.changeScale(2400); }},
+														{text:'1" = 400\'', handler:function () { app.changeScale(4800); }},
+														{text:'1" = 660\'', handler:function () { app.changeScale(7920); }},
+														{text:'1" = 800\'', handler:function () { app.changeScale(9600); }}
+													]
+												}
+											},
+											{id:'parcelListMenu', hidden: hideBuildParcelList, text:'Create a parcel list by...', disabled:true,
+												menu: {
+													items: [
+														{text:'Point(s)', handler:function () { app.doParcelList('point'); }},
+														{text:'Line(s)', handler:function () { app.doParcelList('line'); }},
+														{text:'Polygon(s)', handler:function () { app.doParcelList('polygon'); }},
+														'-',
+														{id:'subsMenuItem', text:'Subdivision', disabled:true, handler:function () { app.doParcelList('subdivision'); }}
+													]
+												}
+											},
+											{text:'Clear parcel information', handler:function () { app.clearParcels(); }}
+										]
+									}
+								},
+								'->',{xtype: 'box',hidden: hideMobile, autoEl: {tag: 'a',href: mobileLink,cn: 'Mobile Version'}},
+								'-',(config.links?config.links:'')
+							]
+			})
+					]
+	},
+				new Ext.BoxComponent({region:'south', height:40, margins:'5 5 5 5', autoEl:{id:'footer', tag:'div', html:config.disclaimer}}),
+				{
+					region:'west',
+					id:'controls-panel',
+					contentEl:'controls',
+					title:'Controls',
+					split:true,
+		width:(Ext.util.Cookies.get('QPMAP_CONTROLS_WIDTH')?Ext.util.Cookies.get('QPMAP_CONTROLS_WIDTH'):200) , minSize:panelMinSize, maxSize:400,
+					collapsible: panelCollapse,
+					padding:'5 5 5 5',
+					autoScroll:true
+				},
+				new Ext.BoxComponent({region:'center', margins:'0 0 0 0', el:'map', border:'1px', listeners: {'resize':onResizeHandler}}),
+				{
+					region:'east',
+					id:'reports',
+					title: 'Reports',
+					split:true,
+					width:(Ext.util.Cookies.get('QPMAP_REPORTS_WIDTH')?Ext.util.Cookies.get('QPMAP_REPORTS_WIDTH'):300) , minSize: panelMinSize, maxSize: 400,
+					collapsible: panelCollapse,
+					margins:'0 5 0 0',
+					layout:'accordion',
+					layoutConfig:{animate:true},
+					items: [
+						{html: config.welcome, id:'parcel', title:'Parcel', autoScroll:true, padding:'5 5 5 5', border:false},
+						{id:'parcelList', hidden: hideBuildParcelList, title:'Parcel List', autoScroll:true, padding:'5 5 5 5', border:false},
+						{id:'searchPanel', hidden: hideSearch, title:'Search',html:'<div id=llSearch></div>', autoScroll:true, padding:'5 5 5 5', border:false},
+						{title:'Legend',id:'legend', border:false, autoScroll:true, padding:'5 5 5 5', listeners:{'expand':function () { app.updateLegend(); }}},
+						{id:'measure', title:'Measure', padding:'5 5 5 5', border:false, autoScroll:true}
+					]
+				}
+			]});
+			//************************************
+			if (config.searchPanel) {
+				var searchPanel = new Ext.FormPanel({
+				labelWidth: 125, // label settings here cascade unless overridden
+				id: 'geoForm',
+				//url: 'http://qpublic7.qpublic.net/qpmap4.1/scripts/get_ll.php?county=' + config.county + "&prj=" + config.projection,
+				method: 'GET',
+				frame:false,
+				applyTo: 'llSearch',
+				// title: 'Geographic Search',
+				bodyStyle:'padding:5px 5px 0',
+				// width: 250,
+				defaultType: 'textfield',
+
+				 items: [{
+					xtype:'fieldset',
+					 collapsible: true,
+					title: 'Search For Road Names',
+					autoHeight:true,
+					defaults: {width: 210},
+					defaultType: 'textfield',
+					collapsed: true,
+					labelAlign: 'top',
+					items :[{
+							xtype:'combo',
+							id: 'rdSearchBox',
+							store: rd_store,
+							displayField:'qplabel',
+							typeAhead: false,
+							width: 250,
+							minChars : 2,
+							mode: 'remote',
+							queryParam: 'query',
+							loadingText: 'Searching...',
+							hideTrigger:true,
+							// applyTo: 'searchRoads',
+							onSelect: function(record){
+								app.roadZoom(record.data.gid,record.data.qplabel,record.data.min_x,record.data.min_y,record.data.max_x,record.data.max_y);
+								//var ext = record.data.min_x + ' ' + record.data.min_y + ' ' + record.data.max_x + ' ' + record.data.max_y;
+							 //alert(ext);
+							}
+							//renderTo: 'searchPane'
+							}
+						]
+					},{
+					xtype:'fieldset',
+					collapsible: true,
+					title: 'Search For Parcels',
+					id: 'parcelFieldset',
+					autoHeight:true,
+					defaults: {width: 210},
+					defaultType: 'textfield',
+					collapsed: false,
+					labelAlign: 'top',
+					items :[{
+							xtype:'combo',
+							id: 'parcelSearchBox',
+							store: parcel_store,
+							displayField:'search_id',
+							typeAhead: false,
+							width: 250,
+							minChars : 2,
+							mode: 'remote',
+							queryParam: 'query',
+							loadingText: 'Searching...',
+							hideTrigger:true,
+							// applyTo: 'searchParcels',
+							onSelect: function(record){
+								app.parcelSearchZoom(record.data.qpid,record.data.min_x,record.data.min_y,record.data.max_x,record.data.max_y);
+								}
+							}
+					]
+				},{
+					xtype:'fieldset',
+					title: 'Geographic Search',
+					collapsible: true,
+					autoHeight:true,
+					collapsed: true,
+					defaults: {width: 50, allowDecimals: false},
+					defaultType: 'numberfield',
+					items :[{
+							fieldLabel: 'Longitude Deg',
+							id: 'lonDeg',
+							name: 'lonDeg',
+							value: cenLonDeg,
+							minValue: minLonDeg,
+							maxValue: maxLonDeg
+						},{
+							fieldLabel: 'Longitude Min',
+							id: 'lonMin',
+							name: 'lonMin',
+							value: cenLonMin,
+							minValue: 0,
+							maxValue: 60
+
+						},{
+							fieldLabel: 'Longitude Sec',
+							id: 'lonSec',
+							name: 'lonSec',
+							value: 0,
+							minValue: 0,
+							maxValue: 60
+						},{
+							fieldLabel: 'Latitude Deg',
+							id: 'latDeg',
+							name: 'latDeg',
+							value: cenLatDeg,
+							minValue: minLatDeg,
+							maxValue: maxLatDeg
+						},{
+							fieldLabel: 'Latitude Min',
+							id: 'latMin',
+							name: 'latMin',
+							value: cenLatMin,
+							minValue: 0,
+							maxValue: 60
+						},{
+							fieldLabel: 'Latitude Sec',
+							id: 'latSec',
+							name: 'latSec',
+							value: 0,
+							minValue: 0,
+							maxValue: 60
+						},{
+						 xtype          : 'button',
+						 text           : 'Locate',
+						 fieldLabel     : '&nbsp;',
+						 labelSeparator : '',
+						 handler: function() {
+						 var form = Ext.getCmp('geoForm').getForm();
+							 if (form.isValid()) {
+								 app.llSearch();
+							 }
+						 }
+					 }
+					]
+				}]
+			});
+			new Ext.ToolTip({
+			target: 'parcelFieldset',
+			html: "Enter a partial parcel number<BR>A wildcard is implied at front and rear of string.<BR>To explictly use a wildcard in the center of string use:<BR>'%' for multiple characters or<BR>'_' for a single character",
+			autoHide: true,
+			dismissDelay: 10000,
+			mouseOffset: [-100,15],
+			closable: true,
+			draggable:false
+			});
+		} // searchPanel
+
+		//********************************************************************
+			app.initialize(); // fire up the maps, layer control and legend
+
+			if(app.layerExists('subs'))
+				Ext.getCmp('subsMenuItem').enable();
+			app.doButton('info', false);
+			if (qp_st_county == 'fl_bay') {
+				app.doButton('zoom-box', false);
+			}
+		}
+		Ext.onReady(initExt);
+	</script>
+</head>
+<body><script type="text/javascript">
+//<![CDATA[
+try{(function(a){var b="http://",c="qpublic9.qpublic.net",d="/cdn-cgi/cl/",e="img.gif",f=new a;f.src=[b,c,d,e].join("")})(Image)}catch(e){}
+//]]>
+</script>
+<div id="controls">
+
+<div id="layerControl"></div>
+<br/>
+<div id='coords'></div>
+
+<div id=mapHits align=center>
+</div>
+
+<div id="overview"></div>
+<br/>
+<center><a href='javascript:app.showScale()'>Show Scale</a></center>
+</div>
+<div id="map">
+<div id="old-coords"></div>
+</div>
+<div id="drawControlContent" style="visibility:hidden">
+<p>Draw a shape(s) on the map. Finish a shape by double clicking. When finished click the 'done' button and a parcel list will be generated.</p>
+<br/>
+<input type="button" value=" done " onClick="app.getParcelsByShape()">
+<input type="button" value=" clear " onClick="app.clearCanvas()">
+</div>
+<div id="tooltip"></div>
+</body>
+</html>

@@ -8,13 +8,20 @@
   <!-- Optional theme -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
 
-
 </head>
 
 <body>
 
-  <div id="container" style="width:100%; height:400px;"></div>
 
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALv7ePa6WVpI-pSOfLOzMxSF8lbFCw0v8"/>
+  <script type="text/javascript">
+
+
+  </script>
+
+  <div id="map_canvas" style="width: 600px; height: 600px"></div>
+
+  <div id="container" style="width:100%; height:400px;"></div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
   <!-- <script src="http://code.highcharts.com/highcharts.js"></script> -->
@@ -30,69 +37,107 @@
   <script src="node_modules/pdf.js/src/display/pattern_helper.js"></script>
   <script src="node_modules/pdf.js/src/display/font_loader.js"></script>
   <script src="node_modules/pdf.js/src/display/annotation_helper.js"></script>
+
   <script>
   // Specify the main script used to create a new PDF.JS web worker.
   // In production, leave this undefined or change it to point to the
   // combined `pdf.worker.js` file.
   PDFJS.workerSrc = 'node_modules/pdf.js/src/worker_loader.js';
   </script>
-  <script src="processpdf.js"></script>
+
+  <script src="script/src/processpdf.js"></script>
 
   <script type="text/javascript">
 
-  $(function () {
+  function drawGoogleMap()
+  {
+    var mapOptions = {
+      center: { lat: 19.586775, lng: -155.4585},
+      zoom: 9
+    };
 
-    var data = [{
-      "hc-key": "us-hi-001",
-      "value" : 1,
-      "id" : "us-hi-001"
-    }];
+    var map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+
+    var flagIcon = '../Images/Flag1RightGreen-2-icon.png';
 
 
-    $('#container').highcharts('Map', {
-      title: {
-        text: 'Hawaii County (Big Island) Recent Parcel Sales in Zone-Section'
-      },
-      mapNavigation: {
-        enabled: false
-      },
-      series : [{
-        name : '# Sales',
-        data : data,
-        joinBy: 'hc-key',
-        allAreas: false,
-        mapData: Highcharts.maps['countries/us/us-hi-all'],
-        // click: function (e) {
-        //                e.point.zoomTo();
-        //            }
-      }],
-      chart: {
-        events: {
-          load: function () {
-            var map = $('#container').highcharts()
-            map.mapCreditsFull = '';
-            map.get('us-hi-001').zoomTo();
-          }
+    $.get( "../script/test/data/points.txt", function() {
+      console.log('loading points.txt')
+    })
+    .done(function(data) {
+      var points = JSON.parse('[' + data.trim().replace(/\n/g, ',') + ']');
+
+      for(var i = 0; i < points.length ; i++)
+      {
+        console.log(points[i][0]);
+
+        var marker = new google.maps.Marker({
+          position: { lat: parseFloat(points[i][1]), lng: parseFloat(points[i][0]) } ,
+          map: map,
+          title: 'Tax Sale Land ' + i,
+          icon : flagIcon
+        })
+      }
+    })
+    .fail(function() {
+      console.log('error - points.txt not loaded')
+    });
+}
+
+$(function () {
+
+  drawGoogleMap();
+
+
+  var data = [{
+    "hc-key": "us-hi-001",
+    "value" : 1,
+    "id" : "us-hi-001"
+  }];
+
+  $('#container').highcharts('Map', {
+    title: {
+      text: 'Hawaii County (Big Island) Recent Parcel Sales in Zone-Section'
+    },
+    mapNavigation: {
+      enabled: false
+    },
+    series : [{
+      name : '# Sales',
+      data : data,
+      joinBy: 'hc-key',
+      allAreas: false,
+      mapData: Highcharts.maps['countries/us/us-hi-all'],
+      // click: function (e) {
+      //                e.point.zoomTo();
+      //            }
+    }],
+    chart: {
+      events: {
+        load: function () {
+          var map = $('#container').highcharts()
+          map.mapCreditsFull = '';
+          map.get('us-hi-001').zoomTo();
         }
       }
-    });
-
-    //var divison = 3;
-    var zone = 1; // 1-9
-    var section = 1; // 1-9
-    var queryURL = 'http://qpublic9.qpublic.net/ga_subdivison_dw.php?searchType=map&' +
-    'numberValue=' + zone + section +
-    '&nameValue=&sectionValue=&townshipValue=&rangeValue=&' +
-    'startDate='+ '01-2015' +
-    '&endDate=&startPrice=&endPrice=&startArea=&endArea=&startAcreage=&endAcreage=&saleQualification=&saleVacant=&propertyType=All&reasonType=All&start=0&county=hi_hawaii';
-
-    // $.get(queryURL, function(data, status){
-    //   console.log("Status: " + status  +
-    //               "\n" +
-    //               "Data: " + data);
-    // });
-
+    }
   });
-  </script>
+
+  //var divison = 3;
+  var zone = 1; // 1-9
+  var section = 1; // 1-9
+  var queryURL = 'http://qpublic9.qpublic.net/ga_subdivison_dw.php?searchType=map&' +
+  'numberValue=' + zone + section +
+  '&nameValue=&sectionValue=&townshipValue=&rangeValue=&' +
+  'startDate='+ '01-2015' +
+  '&endDate=&startPrice=&endPrice=&startArea=&endArea=&startAcreage=&endAcreage=&saleQualification=&saleVacant=&propertyType=All&reasonType=All&start=0&county=hi_hawaii';
+
+  // $.get(queryURL, function(data, status){
+  //   console.log("Status: " + status  +
+  //               "\n" +
+  //               "Data: " + data);
+  // });
+});
+</script>
 
 </body>
